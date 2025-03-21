@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using EmployeeManagement.Data;
 
 namespace EmployeeManagement.Models;
 
@@ -14,10 +15,12 @@ namespace EmployeeManagement.Models;
 public class AuthController : ControllerBase    // the "Auth" in AuthController is used in the path of the endpoint
 {
     private readonly IConfiguration _configuration;
+    private readonly ApplicationDbContext _context;
 
-    public AuthController(IConfiguration configuration)
+    public AuthController(IConfiguration configuration, ApplicationDbContext context)
     {
         _configuration = configuration;
+        _context = context;
     }
 
     // register user
@@ -25,6 +28,30 @@ public class AuthController : ControllerBase    // the "Auth" in AuthController 
 
     public IActionResult Register([FromBody] User user)
     {
+        // Store this information to the database before confirming registration
+        // SELECT * FROM Users WHERE Username = user.Username
+        // CREATE USER user.Username
+        // INSERT INTO Users (Username, Password) VALUES (user.Username, user.Password)
+        /* 'user' contains all this:
+        {
+                "Email": "test@123.com",
+                "Username": "test123",
+                "Password": "safepassword"
+            }
+        */
+        // Now, explicitly add each of the fields to the database
+        var newUser = new User
+        {
+            Email = user.Email,
+            Username = user.Username,
+            Password = user.Password,
+            DateCreated = DateTime.Now,
+            DateUpdated = DateTime.Now
+            // Role = user.UserRole
+        };
+        _context.User.Add(newUser); // similar to "git add"
+        _context.SaveChanges();     // similar to "git commit"
+        
         return Ok("User registered");
     }
 
